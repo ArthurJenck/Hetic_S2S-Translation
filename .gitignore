@@ -205,3 +205,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# ML Models and datasets
+*.keras
+*.zip
+fra.txt
+_about.txt
+*.png
