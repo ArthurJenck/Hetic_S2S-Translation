@@ -182,4 +182,32 @@ class Translator:
         print(f"encoder_outputs: {self.encoder_outputs.shape}")
         print(f"state_h: {self.state_h.shape}")
         print(f"state_c: {self.state_c.shape}")
+    
+    def build_attention_mechanism(self, encoder_outputs, decoder_outputs):
+        """
+        Implémente le mécanisme d'attention dot-product.
+        
+        Args:
+            encoder_outputs: Sorties de l'encodeur (batch, encoder_timesteps, latent_dim)
+            decoder_outputs: Sorties du décodeur (batch, decoder_timesteps, latent_dim)
+        
+        Returns:
+            context_vector: Vecteur de contexte pondéré
+            attention_weights: Poids d'attention (pour visualisation)
+        """
+        # Étape 1 : Calcul des scores d'attention (similarité)
+        attention_scores = Dot(axes=[2, 2], name='attention_scores')([decoder_outputs, encoder_outputs])
+        
+        # Étape 2 : Normalisation avec softmax
+        attention_weights = Softmax(name='attention_weights')(attention_scores)
+        
+        # Étape 3 : Vecteur de contexte (moyenne pondérée)
+        context_vector = Dot(axes=[2, 1], name='context_vector')([attention_weights, encoder_outputs])
+        
+        print(f"\n=== MÉCANISME D'ATTENTION ===")
+        print(f"Scores: Dot([decoder, encoder]) → shape {attention_scores.shape}")
+        print(f"Weights: Softmax(scores) → shape {attention_weights.shape}")
+        print(f"Context: Dot([weights, encoder]) → shape {context_vector.shape}")
+        
+        return context_vector, attention_weights
 
