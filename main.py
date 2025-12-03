@@ -33,4 +33,6 @@ if __name__ == "__main__":
     translator.evaluate_exact_match(n_samples=50)
     translator.evaluate_bleu(n_samples=100)
     translator.show_examples(n_samples=20)
+    
+    translator.plot_training_history()
 

@@ -574,4 +574,37 @@ class Translator:
             print(f"   Prédiction: {ex['pred']}")
             print(f"   Vérité:     {ex['true']}")
             print()
+    
+    def plot_training_history(self):
+        """Visualise les courbes de loss et accuracy durant l'entraînement."""
+        if self.history is None:
+            print("Aucun historique d'entraînement disponible.")
+            return
+        
+        print(f"\n=== VISUALISATION DE L'ENTRAÎNEMENT ===")
+        
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+        
+        # Loss
+        ax1.plot(self.history.history['loss'], label='Loss (train)', linewidth=2, color='#3498db')
+        ax1.plot(self.history.history['val_loss'], label='Loss (validation)', linewidth=2, color='#e74c3c')
+        ax1.set_xlabel('Epoch', fontsize=12)
+        ax1.set_ylabel('Loss', fontsize=12)
+        ax1.set_title('Évolution de la Loss', fontsize=14, fontweight='bold')
+        ax1.legend(fontsize=10)
+        ax1.grid(True, alpha=0.3)
+        
+        # Accuracy
+        ax2.plot(self.history.history['accuracy'], label='Accuracy (train)', linewidth=2, color='#2ecc71')
+        ax2.plot(self.history.history['val_accuracy'], label='Accuracy (validation)', linewidth=2, color='#f39c12')
+        ax2.set_xlabel('Epoch', fontsize=12)
+        ax2.set_ylabel('Accuracy', fontsize=12)
+        ax2.set_title('Évolution de l\'Accuracy', fontsize=14, fontweight='bold')
+        ax2.legend(fontsize=10)
+        ax2.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        plt.savefig('training_history.png', dpi=150, bbox_inches='tight')
+        print("✓ Graphiques sauvegardés dans 'training_history.png'")
+        plt.show()
 
