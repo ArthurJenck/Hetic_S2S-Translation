@@ -18,4 +18,15 @@ if __name__ == "__main__":
     translator.train()
     
     translator.build_inference_models()
+    
+    print("\n=== TEST DE TRADUCTION ===")
+    test_phrases = [
+        "je suis étudiant",
+        "bonjour",
+        "comment allez vous ?"
+    ]
+    for phrase in test_phrases:
+        traduction = translator.translate(phrase)
+        print(f"FR: {phrase}")
+        print(f"EN: {traduction}\n")
 

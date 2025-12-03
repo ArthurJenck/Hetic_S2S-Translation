@@ -379,4 +379,75 @@ class Translator:
         print(f"\n=== MODÈLES D'INFÉRENCE ===")
         print(f"✓ encoder_model: Input → [encoder_outputs, state_h, state_c]")
         print(f"✓ decoder_model: [decoder_input, encoder_outputs, h, c] → [output, new_h, new_c]")
+    
+    def decode_sequence(self, input_seq):
+        """
+        Décode une séquence d'entrée en utilisant greedy decoding.
+        
+        Args:
+            input_seq: Séquence source encodée (numpy array)
+        
+        Returns:
+            Phrase traduite (string)
+        """
+        # Étape 1 : Encoder la phrase source
+        enc_outputs, h, c = self.encoder_model.predict(input_seq, verbose=0)
+        
+        # Étape 2 : Initialiser avec <sos>
+        sos_token = self.tokenizer_en.word_index['<sos>']
+        target_seq = np.array([[sos_token]])
+        
+        # Étape 3 : Boucle de génération
+        decoded_sentence = []
+        stop_condition = False
+        
+        while not stop_condition:
+            # Prédire le prochain mot
+            output_tokens, h, c = self.decoder_model.predict(
+                [target_seq, enc_outputs, h, c],
+                verbose=0
+            )
+            
+            # Greedy decoding : prendre le mot le plus probable
+            sampled_token_index = np.argmax(output_tokens[0, -1, :])
+            
+            # Convertir l'index en mot
+            sampled_word = self.tokenizer_en.index_word.get(sampled_token_index, '')
+            
+            # Ajouter le mot si ce n'est pas <eos>
+            if sampled_word and sampled_word != '<eos>':
+                decoded_sentence.append(sampled_word)
+            
+            # Condition d'arrêt
+            if sampled_word == '<eos>' or len(decoded_sentence) >= self.max_len_en:
+                stop_condition = True
+            
+            # Préparer l'entrée pour le prochain timestep
+            target_seq = np.array([[sampled_token_index]])
+        
+        return ' '.join(decoded_sentence)
+    
+    def translate(self, french_sentence: str) -> str:
+        """
+        Traduit une phrase française en anglais.
+        
+        Args:
+            french_sentence: Phrase en français
+        
+        Returns:
+            Traduction en anglais
+        """
+        # Prétraiter
+        french_sentence = french_sentence.lower().strip()
+        
+        # Tokeniser
+        seq = self.tokenizer_fr.texts_to_sequences([french_sentence])
+        
+        # Pad
+        input_seq = pad_sequences(seq, maxlen=self.max_len_fr, padding='post')
+        
+        # Décoder
+        translation = self.decode_sequence(input_seq)
+        
+        return translation
 
