@@ -355,6 +355,7 @@ class Translator:
         decoder_state_input_c = Input(shape=(self.latent_dim,), name='decoder_state_c_inf')
         decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
         
+        # Réutiliser l'Embedding entraîné (CRITIQUE : ne pas créer une nouvelle couche)
         dec_emb_inf = self.decoder_embedding(decoder_inputs_inf)
         
         # LSTM
@@ -470,13 +471,11 @@ class Translator:
         print(f"\n=== EXACT MATCH ACCURACY ({n_samples} exemples) ===")
         
         for i in range(n_samples):
+            # Traduction
             prediction = self.translate(self.input_texts[i])
-            
             true_translation = self.target_texts[i].lower().strip()
-            for char in '!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n':
-                true_translation = true_translation.replace(char, ' ')
-            true_translation = ' '.join(true_translation.split())
             
+            # Comparaison
             if prediction == true_translation:
                 correct += 1
         
@@ -504,17 +503,17 @@ class Translator:
         for i in range(n_samples):
             start = time.time()
             
+            # Traduction
             prediction = self.translate(self.input_texts[i])
             
             elapsed = time.time() - start
             times.append(elapsed)
             
-            reference_text = self.target_texts[i].lower()
-            for char in '!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n':
-                reference_text = reference_text.replace(char, ' ')
-            reference = [reference_text.split()]
+            # Référence (liste de listes pour BLEU)
+            reference = [self.target_texts[i].lower().split()]
             candidate = prediction.split()
             
+            # Score BLEU
             try:
                 score = sentence_bleu(reference, candidate)
                 bleu_scores.append(score)
@@ -550,11 +549,7 @@ class Translator:
                 break
             
             prediction = self.translate(self.input_texts[i])
-            
             true_translation = self.target_texts[i].lower().strip()
-            for char in '!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n':
-                true_translation = true_translation.replace(char, ' ')
-            true_translation = ' '.join(true_translation.split())
             
             is_correct = (prediction == true_translation)
             
