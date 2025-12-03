@@ -3,8 +3,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import numpy as np
 import tensorflow as tf
-from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 from keras.layers import Input, Embedding, LSTM, Dense, Dot, Softmax, Concatenate
 from keras.models import Model, load_model
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
