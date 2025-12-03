@@ -15,4 +15,5 @@ if __name__ == "__main__":
     translator.prepare_training_data()
     
     translator.build_encoder()
+    translator.build_decoder()
 

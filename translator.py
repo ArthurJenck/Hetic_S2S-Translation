@@ -210,4 +210,36 @@ class Translator:
         print(f"Context: Dot([weights, encoder]) → shape {context_vector.shape}")
         
         return context_vector, attention_weights
+    
+    def build_decoder(self):
+        """
+        Construit le décodeur : Input → Embedding → LSTM → Attention → Concatenate → Dense.
+        """
+        self.decoder_inputs = Input(shape=(None,), name='decoder_input')
+        
+        dec_emb = Embedding(self.vocab_size_en, self.embedding_dim, 
+                           mask_zero=True, name='decoder_embedding')(self.decoder_inputs)
+        
+        self.decoder_lstm = LSTM(self.latent_dim, return_sequences=True, 
+                                return_state=True, name='decoder_lstm')
+        decoder_outputs, _, _ = self.decoder_lstm(dec_emb, initial_state=self.encoder_states)
+        
+        # Attention
+        context_vector, self.attention_weights = self.build_attention_mechanism(
+            self.encoder_outputs, decoder_outputs)
+        
+        # Concaténation du contexte et de la sortie LSTM
+        decoder_combined = Concatenate(axis=-1, name='concat')([context_vector, decoder_outputs])
+        
+        # Couche Dense pour prédiction
+        self.decoder_dense = Dense(self.vocab_size_en, activation='softmax', name='decoder_output')
+        self.decoder_outputs = self.decoder_dense(decoder_combined)
+        
+        print(f"\n=== DÉCODEUR ===")
+        print(f"Input: shape=(None,)")
+        print(f"Embedding: {self.vocab_size_en} mots → {self.embedding_dim} dim")
+        print(f"LSTM: {self.latent_dim} unités (initial_state=encoder_states)")
+        print(f"Attention + Concatenate")
+        print(f"Dense: {self.vocab_size_en} sorties (softmax)")
+        print(f"decoder_outputs: {self.decoder_outputs.shape}")
 
