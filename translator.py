@@ -170,12 +170,13 @@ class Translator:
         """Construit l'encodeur : Input → Embedding → LSTM."""
         self.encoder_inputs = Input(shape=(None,), name='encoder_input')
         
-        enc_emb = Embedding(self.vocab_size_fr, self.embedding_dim, 
-                           mask_zero=True, name='encoder_embedding')(self.encoder_inputs)
+        self.encoder_embedding = Embedding(self.vocab_size_fr, self.embedding_dim, 
+                                          mask_zero=True, name='encoder_embedding')
+        enc_emb = self.encoder_embedding(self.encoder_inputs)
         
-        encoder_lstm = LSTM(self.latent_dim, return_sequences=True, 
-                           return_state=True, name='encoder_lstm')
-        self.encoder_outputs, self.state_h, self.state_c = encoder_lstm(enc_emb)
+        self.encoder_lstm = LSTM(self.latent_dim, return_sequences=True, 
+                                return_state=True, name='encoder_lstm')
+        self.encoder_outputs, self.state_h, self.state_c = self.encoder_lstm(enc_emb)
         self.encoder_states = [self.state_h, self.state_c]
         
         print(f"\n=== ENCODEUR ===")
@@ -220,8 +221,9 @@ class Translator:
         """
         self.decoder_inputs = Input(shape=(None,), name='decoder_input')
         
-        dec_emb = Embedding(self.vocab_size_en, self.embedding_dim, 
-                           mask_zero=True, name='decoder_embedding')(self.decoder_inputs)
+        self.decoder_embedding = Embedding(self.vocab_size_en, self.embedding_dim, 
+                                          mask_zero=True, name='decoder_embedding')
+        dec_emb = self.decoder_embedding(self.decoder_inputs)
         
         self.decoder_lstm = LSTM(self.latent_dim, return_sequences=True, 
                                 return_state=True, name='decoder_lstm')
@@ -278,7 +280,7 @@ class Translator:
         callbacks = [
             EarlyStopping(
                 monitor='val_loss',
-                patience=5,
+                patience=10,
                 restore_best_weights=True,
                 verbose=1
             ),
@@ -297,7 +299,7 @@ class Translator:
         ]
         
         print(f"\n=== CALLBACKS ===")
-        print(f"✓ EarlyStopping (patience=5)")
+        print(f"✓ EarlyStopping (patience=10)")
         print(f"✓ ModelCheckpoint (best_model.keras)")
         print(f"✓ ReduceLROnPlateau (factor=0.5, patience=3)")
         
@@ -353,9 +355,7 @@ class Translator:
         decoder_state_input_c = Input(shape=(self.latent_dim,), name='decoder_state_c_inf')
         decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
         
-        # Embedding
-        dec_emb_inf = Embedding(self.vocab_size_en, self.embedding_dim, 
-                               mask_zero=True, name='decoder_embedding_inf')(decoder_inputs_inf)
+        dec_emb_inf = self.decoder_embedding(decoder_inputs_inf)
         
         # LSTM
         decoder_outputs_inf, state_h_inf, state_c_inf = self.decoder_lstm(
@@ -470,11 +470,13 @@ class Translator:
         print(f"\n=== EXACT MATCH ACCURACY ({n_samples} exemples) ===")
         
         for i in range(n_samples):
-            # Traduction
             prediction = self.translate(self.input_texts[i])
-            true_translation = self.target_texts[i].lower().strip()
             
-            # Comparaison
+            true_translation = self.target_texts[i].lower().strip()
+            for char in '!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n':
+                true_translation = true_translation.replace(char, ' ')
+            true_translation = ' '.join(true_translation.split())
+            
             if prediction == true_translation:
                 correct += 1
         
@@ -502,17 +504,17 @@ class Translator:
         for i in range(n_samples):
             start = time.time()
             
-            # Traduction
             prediction = self.translate(self.input_texts[i])
             
             elapsed = time.time() - start
             times.append(elapsed)
             
-            # Référence (liste de listes pour BLEU)
-            reference = [self.target_texts[i].lower().split()]
+            reference_text = self.target_texts[i].lower()
+            for char in '!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n':
+                reference_text = reference_text.replace(char, ' ')
+            reference = [reference_text.split()]
             candidate = prediction.split()
             
-            # Score BLEU
             try:
                 score = sentence_bleu(reference, candidate)
                 bleu_scores.append(score)
@@ -542,12 +544,17 @@ class Translator:
         good_examples = []
         bad_examples = []
         
-        for i in range(len(self.input_texts)):
+        max_search = min(len(self.input_texts), 500)
+        for i in range(max_search):
             if len(good_examples) >= n_samples // 2 and len(bad_examples) >= n_samples // 2:
                 break
             
             prediction = self.translate(self.input_texts[i])
+            
             true_translation = self.target_texts[i].lower().strip()
+            for char in '!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n':
+                true_translation = true_translation.replace(char, ' ')
+            true_translation = ' '.join(true_translation.split())
             
             is_correct = (prediction == true_translation)
             
@@ -662,4 +669,33 @@ class Translator:
         print(f"\nNote: Visualisation complète de l'attention nécessite")
         print(f"      une extraction explicite des poids d'attention du modèle.")
         print(f"      Architecture attention intégrée, poids non directement accessibles.")
+    
+    def interactive_translate(self):
+        """Mode interactif pour tester le modèle de traduction."""
+        print(f"\n{'='*70}")
+        print(f"MODE INTERACTIF - TRADUCTION FR→EN")
+        print(f"{'='*70}")
+        print("Entrez des phrases en français pour les traduire.")
+        print("Commandes: 'q' ou 'quit' pour quitter\n")
+        
+        while True:
+            try:
+                user_input = input("FR: ").strip()
+                
+                if user_input.lower() in ['q', 'quit', 'exit']:
+                    print("\nFin du mode interactif.")
+                    break
+                
+                if not user_input:
+                    continue
+                
+                # Traduction
+                translation = self.translate(user_input)
+                print(f"EN: {translation}\n")
+                
+            except KeyboardInterrupt:
+                print("\n\nInterrompu par l'utilisateur.")
+                break
+            except Exception as e:
+                print(f"Erreur: {e}\n")
 

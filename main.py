@@ -7,9 +7,9 @@ if __name__ == "__main__":
         print("Dataset manquant. Exécutez d'abord: python download_data.py")
         exit(1)
     
-    translator = Translator(max_samples=500, epochs=10)
+    translator = Translator(max_samples=10000, epochs=100)
     
-    translator.load_data(num_samples=500)
+    translator.load_data(num_samples=10000)
     translator.build_tokenizers()
     translator.tokenize_sequences()
     translator.prepare_training_data()
@@ -35,4 +35,10 @@ if __name__ == "__main__":
     translator.show_examples(n_samples=20)
     
     translator.plot_training_history()
+    
+    translator.interactive_translate()
+    
+    print("\n" + "="*70)
+    print("✓ Script terminé avec succès!")
+    print("="*70)
 
