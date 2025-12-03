@@ -333,4 +333,50 @@ class Translator:
         print(f"Meilleure val_loss: {min(self.history.history['val_loss']):.4f}")
         
         return self.history
+    
+    def build_inference_models(self):
+        """Construit les modèles séparés pour l'inférence (sans teacher forcing)."""
+        # Encodeur d'inférence
+        self.encoder_model = Model(
+            self.encoder_inputs,
+            [self.encoder_outputs, self.state_h, self.state_c],
+            name='encoder_inference'
+        )
+        
+        # Décodeur d'inférence - Inputs séparés
+        decoder_inputs_inf = Input(shape=(None,), name='decoder_input_inf')
+        encoder_outputs_inf = Input(shape=(None, self.latent_dim), name='encoder_outputs_inf')
+        decoder_state_input_h = Input(shape=(self.latent_dim,), name='decoder_state_h_inf')
+        decoder_state_input_c = Input(shape=(self.latent_dim,), name='decoder_state_c_inf')
+        decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
+        
+        # Embedding
+        dec_emb_inf = Embedding(self.vocab_size_en, self.embedding_dim, 
+                               mask_zero=True, name='decoder_embedding_inf')(decoder_inputs_inf)
+        
+        # LSTM
+        decoder_outputs_inf, state_h_inf, state_c_inf = self.decoder_lstm(
+            dec_emb_inf, initial_state=decoder_states_inputs
+        )
+        decoder_states_inf = [state_h_inf, state_c_inf]
+        
+        # Attention
+        attention_scores_inf = Dot(axes=[2, 2])([decoder_outputs_inf, encoder_outputs_inf])
+        attention_weights_inf = Softmax()(attention_scores_inf)
+        context_vector_inf = Dot(axes=[2, 1])([attention_weights_inf, encoder_outputs_inf])
+        
+        # Concatenate + Dense
+        decoder_combined_inf = Concatenate(axis=-1)([context_vector_inf, decoder_outputs_inf])
+        decoder_outputs_final = self.decoder_dense(decoder_combined_inf)
+        
+        # Modèle décodeur d'inférence
+        self.decoder_model = Model(
+            [decoder_inputs_inf, encoder_outputs_inf, decoder_state_input_h, decoder_state_input_c],
+            [decoder_outputs_final, state_h_inf, state_c_inf],
+            name='decoder_inference'
+        )
+        
+        print(f"\n=== MODÈLES D'INFÉRENCE ===")
+        print(f"✓ encoder_model: Input → [encoder_outputs, state_h, state_c]")
+        print(f"✓ decoder_model: [decoder_input, encoder_outputs, h, c] → [output, new_h, new_c]")
 

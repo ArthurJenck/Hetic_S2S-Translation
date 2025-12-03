@@ -16,4 +16,6 @@ if __name__ == "__main__":
     
     translator.build_model()
     translator.train()
+    
+    translator.build_inference_models()
 
