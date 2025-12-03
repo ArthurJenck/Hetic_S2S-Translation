@@ -256,4 +256,47 @@ class Translator:
         self.model.summary()
         
         return self.model
+    
+    def compile_model(self):
+        """Compile le modèle avec optimizer, loss et metrics."""
+        self.model.compile(
+            optimizer='adam',
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy']
+        )
+        
+        print(f"\n=== COMPILATION ===")
+        print(f"Optimizer: adam")
+        print(f"Loss: sparse_categorical_crossentropy")
+        print(f"Metrics: accuracy")
+    
+    def setup_callbacks(self):
+        """Configure les callbacks pour l'entraînement."""
+        callbacks = [
+            EarlyStopping(
+                monitor='val_loss',
+                patience=5,
+                restore_best_weights=True,
+                verbose=1
+            ),
+            ModelCheckpoint(
+                'best_model.keras',
+                monitor='val_loss',
+                save_best_only=True,
+                verbose=1
+            ),
+            ReduceLROnPlateau(
+                monitor='val_loss',
+                factor=0.5,
+                patience=3,
+                verbose=1
+            )
+        ]
+        
+        print(f"\n=== CALLBACKS ===")
+        print(f"✓ EarlyStopping (patience=5)")
+        print(f"✓ ModelCheckpoint (best_model.keras)")
+        print(f"✓ ReduceLROnPlateau (factor=0.5, patience=3)")
+        
+        return callbacks
 
