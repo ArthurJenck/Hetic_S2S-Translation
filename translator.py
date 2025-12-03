@@ -10,6 +10,8 @@ from keras.models import Model, load_model
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 import matplotlib.pyplot as plt
 from typing import List, Tuple, Optional
+import time
+from nltk.translate.bleu_score import sentence_bleu
 
 
 class Translator:
@@ -450,4 +452,126 @@ class Translator:
         translation = self.decode_sequence(input_seq)
         
         return translation
+    
+    def evaluate_exact_match(self, n_samples: int = 50) -> float:
+        """
+        Évalue l'exact match accuracy sur n_samples.
+        
+        Args:
+            n_samples: Nombre d'exemples à tester
+        
+        Returns:
+            Accuracy en pourcentage
+        """
+        n_samples = min(n_samples, len(self.input_texts))
+        correct = 0
+        
+        print(f"\n=== EXACT MATCH ACCURACY ({n_samples} exemples) ===")
+        
+        for i in range(n_samples):
+            # Traduction
+            prediction = self.translate(self.input_texts[i])
+            true_translation = self.target_texts[i].lower().strip()
+            
+            # Comparaison
+            if prediction == true_translation:
+                correct += 1
+        
+        accuracy = (correct / n_samples) * 100
+        print(f"Exact Match: {correct}/{n_samples} = {accuracy:.2f}%")
+        
+        return accuracy
+    
+    def evaluate_bleu(self, n_samples: int = 100):
+        """
+        Calcule le score BLEU moyen sur n_samples.
+        
+        Args:
+            n_samples: Nombre d'exemples à tester
+        
+        Returns:
+            Score BLEU moyen
+        """
+        n_samples = min(n_samples, len(self.input_texts))
+        bleu_scores = []
+        times = []
+        
+        print(f"\n=== ÉVALUATION BLEU ({n_samples} exemples) ===")
+        
+        for i in range(n_samples):
+            start = time.time()
+            
+            # Traduction
+            prediction = self.translate(self.input_texts[i])
+            
+            elapsed = time.time() - start
+            times.append(elapsed)
+            
+            # Référence (liste de listes pour BLEU)
+            reference = [self.target_texts[i].lower().split()]
+            candidate = prediction.split()
+            
+            # Score BLEU
+            try:
+                score = sentence_bleu(reference, candidate)
+                bleu_scores.append(score)
+            except:
+                bleu_scores.append(0.0)
+        
+        mean_bleu = np.mean(bleu_scores)
+        std_bleu = np.std(bleu_scores)
+        mean_time = np.mean(times)
+        
+        print(f"BLEU moyen: {mean_bleu:.4f} (±{std_bleu:.4f})")
+        print(f"Temps moyen par traduction: {mean_time*1000:.2f}ms")
+        
+        return mean_bleu
+    
+    def show_examples(self, n_samples: int = 20):
+        """
+        Affiche des exemples de traductions.
+        
+        Args:
+            n_samples: Nombre d'exemples à afficher
+        """
+        n_samples = min(n_samples, len(self.input_texts))
+        
+        print(f"\n=== EXEMPLES DE TRADUCTIONS ({n_samples}) ===\n")
+        
+        good_examples = []
+        bad_examples = []
+        
+        for i in range(len(self.input_texts)):
+            if len(good_examples) >= n_samples // 2 and len(bad_examples) >= n_samples // 2:
+                break
+            
+            prediction = self.translate(self.input_texts[i])
+            true_translation = self.target_texts[i].lower().strip()
+            
+            is_correct = (prediction == true_translation)
+            
+            example = {
+                'fr': self.input_texts[i],
+                'pred': prediction,
+                'true': true_translation,
+                'correct': is_correct
+            }
+            
+            if is_correct and len(good_examples) < n_samples // 2:
+                good_examples.append(example)
+            elif not is_correct and len(bad_examples) < n_samples // 2:
+                bad_examples.append(example)
+        
+        print("✓ BONNES TRADUCTIONS:")
+        for i, ex in enumerate(good_examples, 1):
+            print(f"{i}. FR: {ex['fr']}")
+            print(f"   EN: {ex['pred']}")
+            print()
+        
+        print("\n✗ MAUVAISES TRADUCTIONS:")
+        for i, ex in enumerate(bad_examples, 1):
+            print(f"{i}. FR: {ex['fr']}")
+            print(f"   Prédiction: {ex['pred']}")
+            print(f"   Vérité:     {ex['true']}")
+            print()
 
