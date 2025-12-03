@@ -299,4 +299,38 @@ class Translator:
         print(f"✓ ReduceLROnPlateau (factor=0.5, patience=3)")
         
         return callbacks
+    
+    def train(self, batch_size: int = 64, validation_split: float = 0.2):
+        """
+        Entraîne le modèle Seq2Seq.
+        
+        Args:
+            batch_size: Taille des batchs
+            validation_split: Proportion pour validation
+        """
+        self.compile_model()
+        callbacks = self.setup_callbacks()
+        
+        print(f"\n=== ENTRAÎNEMENT ===")
+        print(f"Batch size: {batch_size}")
+        print(f"Epochs: {self.epochs}")
+        print(f"Validation split: {validation_split * 100}%")
+        print(f"Nombre d'exemples entraînement: {int(len(self.encoder_input_data) * (1 - validation_split))}")
+        print(f"Nombre d'exemples validation: {int(len(self.encoder_input_data) * validation_split)}")
+        print()
+        
+        self.history = self.model.fit(
+            [self.encoder_input_data, self.decoder_input_data],
+            self.decoder_target_data,
+            batch_size=batch_size,
+            epochs=self.epochs,
+            validation_split=validation_split,
+            callbacks=callbacks,
+            verbose=1
+        )
+        
+        print(f"\n✓ Entraînement terminé!")
+        print(f"Meilleure val_loss: {min(self.history.history['val_loss']):.4f}")
+        
+        return self.history
 
