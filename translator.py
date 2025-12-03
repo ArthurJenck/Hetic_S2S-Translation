@@ -242,4 +242,18 @@ class Translator:
         print(f"Attention + Concatenate")
         print(f"Dense: {self.vocab_size_en} sorties (softmax)")
         print(f"decoder_outputs: {self.decoder_outputs.shape}")
+    
+    def build_model(self):
+        """Construit le modèle Seq2Seq complet en assemblant encodeur et décodeur."""
+        self.build_encoder()
+        self.build_decoder()
+        
+        self.model = Model([self.encoder_inputs, self.decoder_inputs], 
+                          self.decoder_outputs, 
+                          name='seq2seq_training')
+        
+        print(f"\n=== MODÈLE SEQ2SEQ COMPLET ===")
+        self.model.summary()
+        
+        return self.model
 
