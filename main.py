@@ -13,4 +13,6 @@ if __name__ == "__main__":
     translator.build_tokenizers()
     translator.tokenize_sequences()
     translator.prepare_training_data()
+    
+    translator.build_encoder()
 

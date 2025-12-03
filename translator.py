@@ -162,4 +162,24 @@ class Translator:
         print(f"encoder_input_data: {self.encoder_input_data.shape}")
         print(f"decoder_input_data: {self.decoder_input_data.shape}")
         print(f"decoder_target_data: {self.decoder_target_data.shape}")
+    
+    def build_encoder(self):
+        """Construit l'encodeur : Input → Embedding → LSTM."""
+        self.encoder_inputs = Input(shape=(None,), name='encoder_input')
+        
+        enc_emb = Embedding(self.vocab_size_fr, self.embedding_dim, 
+                           mask_zero=True, name='encoder_embedding')(self.encoder_inputs)
+        
+        encoder_lstm = LSTM(self.latent_dim, return_sequences=True, 
+                           return_state=True, name='encoder_lstm')
+        self.encoder_outputs, self.state_h, self.state_c = encoder_lstm(enc_emb)
+        self.encoder_states = [self.state_h, self.state_c]
+        
+        print(f"\n=== ENCODEUR ===")
+        print(f"Input: shape=(None,)")
+        print(f"Embedding: {self.vocab_size_fr} mots → {self.embedding_dim} dim")
+        print(f"LSTM: {self.latent_dim} unités")
+        print(f"encoder_outputs: {self.encoder_outputs.shape}")
+        print(f"state_h: {self.state_h.shape}")
+        print(f"state_c: {self.state_c.shape}")
 
